@@ -20,8 +20,7 @@ DWORD WINAPI Thread(HMODULE hModule) {
 			break;
 		}
 		if (GetAsyncKeyState(VK_INSERT)) {
-			player->rings = 999;
-			player->time = 0;
+			player->rings =999;
 		}
 		
 		std::cout << "KeyPressedLeftRight: " << player->KeyPressedLeftRight << std::endl;
