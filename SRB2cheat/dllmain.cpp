@@ -1,10 +1,12 @@
 #include <Windows.h>
 #include <iostream>
-#include "trampy/Trampy.h"
+#include "Trampoline.h"
 
 #define ALL_EMERALDS 0x7f
 #define RING_DMG_OFF 0x4FBDF0
 #define KILL_PLAYER_OFF 0x4FC310
+#define PLAYER_OFF 0x9E6D40
+#define EMERALD_OFF 0x9E55C0
 
 
 struct Player {
@@ -30,8 +32,9 @@ struct Player {
 using P_RingDamage = int (* )();
 P_RingDamage RingDamageOrig;
 
-using P_KillPlayer = int (*)();
-P_KillPlayer KillPlayerOrig;
+//DO NOT USE
+//using P_KillPlayer = int (*)();
+//P_KillPlayer KillPlayerOrig;
 
 int KillPlayerHook() {
     return 1;
@@ -58,16 +61,15 @@ void getCon() {
 
 int hack(HMODULE hModule) {
 
-    UINT_PTR base = (UINT_PTR)GetModuleHandle(0);
-    RingDamageOrig = (P_RingDamage)RING_DMG_OFF;//((DWORD)(base + 0x163660));
-    KillPlayerOrig = (P_KillPlayer)KILL_PLAYER_OFF;
+    RingDamageOrig = (P_RingDamage)RING_DMG_OFF;
+    //KillPlayerOrig = (P_KillPlayer)KILL_PLAYER_OFF;
 
     getCon();
-    Player* player = (Player*)0x9E6D40;
-    BYTE* emeralds = (BYTE*)0x9E55C0;
+    Player* player = (Player*)PLAYER_OFF;
+    BYTE * emeralds = (BYTE*)EMERALD_OFF;
 
-    PHOOK_DESCRIPTOR H_RingDamageHook = Trampy::CreateHook((LPVOID)RING_DMG_OFF, (LPVOID)RingDamageHook, (LPVOID*)&RingDamageOrig);
-    PHOOK_DESCRIPTOR H_KillPlaterHook = Trampy::CreateHook((LPVOID)KILL_PLAYER_OFF, (LPVOID)KillPlayerHook, (LPVOID*)&KillPlayerOrig);
+    BYTE* RingDamageStolenBytes = NULL;
+    LPVOID RingTrampoline = NULL;
 
     while (1) {
         printf("rings: %d\t", player->rings);
@@ -75,15 +77,19 @@ int hack(HMODULE hModule) {
         Sleep(1000);
 
         if (GetAsyncKeyState(VK_INSERT)) {
-            Trampy::EnableHook(H_RingDamageHook);
-            Trampy::EnableHook(H_KillPlaterHook);
-            printf("god mode on");
+
+            Trampo::EnableHook(RingDamageHook,RingDamageOrig ,&RingTrampoline, &RingDamageStolenBytes);
+            printf("god mode on\n");
+        }
+
+        if (GetAsyncKeyState(VK_HOME)) {
+            Trampo::DisableHook(RingDamageOrig, RingTrampoline, RingDamageStolenBytes);
+            printf("god mode off\n");
         }
 
         if (GetAsyncKeyState(VK_END)) {
             *emeralds = ALL_EMERALDS;
             player->rings = 999;
-            Trampy::EnableAllHooks();
         }
     }
     return 0;
@@ -92,7 +98,7 @@ int hack(HMODULE hModule) {
 int WINAPI main(HMODULE hModule) {
 
     if (!CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)hack, hModule, NULL, NULL)) {
-        printf("you stupid nigger\n, %d\n", GetLastError());
+        printf("failed CreateThread\n, %d\n", GetLastError());
         return -1;
     }
     
@@ -107,13 +113,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        /*if (!CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)main, hModule, NULL, NULL)) {
-            printf("you stupid nigger\n, %d\n", GetLastError());
-            return -1;
-        }
-        return 0;
-        */
+
         main(hModule);
+
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:

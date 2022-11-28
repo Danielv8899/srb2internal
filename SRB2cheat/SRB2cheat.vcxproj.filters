@@ -18,36 +18,12 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="trampy\disasm\disasm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="trampy\Trampy.cpp">
+    <ClCompile Include="Trampoline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="trampy\disasm\instr\ModRegRM.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\disasm\instr\Opcode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\disasm\instr\OpcodeMaps.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\disasm\instr\Operand.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\disasm\instr\SIB.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\disasm\disasm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\Trampy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trampy\TrampyDefs.h">
+    <ClInclude Include="Trampoline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

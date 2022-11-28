@@ -148,18 +148,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="trampy\disasm\disasm.cpp" />
-    <ClCompile Include="trampy\Trampy.cpp" />
+    <ClCompile Include="Trampoline.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="trampy\disasm\disasm.h" />
-    <ClInclude Include="trampy\disasm\instr\ModRegRM.h" />
-    <ClInclude Include="trampy\disasm\instr\Opcode.h" />
-    <ClInclude Include="trampy\disasm\instr\OpcodeMaps.h" />
-    <ClInclude Include="trampy\disasm\instr\Operand.h" />
-    <ClInclude Include="trampy\disasm\instr\SIB.h" />
-    <ClInclude Include="trampy\Trampy.h" />
-    <ClInclude Include="trampy\TrampyDefs.h" />
+    <ClInclude Include="Trampoline.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
