@@ -2,8 +2,17 @@
 #include <windows.h>
 #include <iostream>
 
+typedef struct _HOOK_OBJECT {
+	BOOL isEnabled;
+	LPVOID hook;
+	LPVOID original;
+	LPVOID trampoline;
+	PBYTE stolenBytes;
+} HOOK_OBJECT, * PHOOK_OBJECT;
+
 namespace Trampo {
 
-	void EnableHook(LPVOID hook, LPVOID orig, LPVOID* trampoline, PBYTE* stolen);
-	void DisableHook(LPVOID orig, LPVOID trampoline, PBYTE stolenBytes);
+	BOOL EnableHook(PHOOK_OBJECT HookObj);
+	BOOL DisableHook(PHOOK_OBJECT HookObj);
+	PHOOK_OBJECT CreateHook(LPVOID hook, LPVOID orig);
 }

@@ -7,6 +7,12 @@
 #define KILL_PLAYER_OFF 0x4FC310
 #define PLAYER_OFF 0x9E6D40
 #define EMERALD_OFF 0x9E55C0
+#define CHAR_SPEED 0x9E6DF4
+#define CHAR_ACCELERATION 0x9E6DFC
+#define ACTION_SPEED 0x9E6E1C
+#define LOAD_MODEL 0x42B8D0
+#define SERVER 0x66BC20
+#define LOCAL_TEXT_CMD 0x009AD860
 
 
 struct Player {
@@ -32,13 +38,18 @@ struct Player {
 using P_RingDamage = int (* )();
 P_RingDamage RingDamageOrig;
 
-//DO NOT USE
-//using P_KillPlayer = int (*)();
-//P_KillPlayer KillPlayerOrig;
+//using SendNetXCmd = int(__cdecl*)(char, void*, size_t);
+//SendNetXCmd SendNetXCmdOrig;
 
-int KillPlayerHook() {
-    return 1;
-}
+/*int __cdecl SendNetXCmdHook(char a1, void* a2, size_t a3) {
+    printf("SendNetXCmd Called\nid: %d\nnparam: %d\nparam: ", a1, a3);
+    for (int i = 0; i < a3; i++) {
+        if (i > 0) printf(":");
+        printf("%02X", ((char*)a2)[i]);
+    }
+    printf("\n----------------------\n");
+    return(SendNetXCmdOrig(a1, a2, a3));
+}*/
 
 int RingDamageHook() {
     return 1;
@@ -62,29 +73,41 @@ void getCon() {
 int hack(HMODULE hModule) {
 
     RingDamageOrig = (P_RingDamage)RING_DMG_OFF;
-    //KillPlayerOrig = (P_KillPlayer)KILL_PLAYER_OFF;
+    //SendNetXCmdOrig = (SendNetXCmd)0x43ABC0;
 
     getCon();
     Player* player = (Player*)PLAYER_OFF;
     BYTE * emeralds = (BYTE*)EMERALD_OFF;
+    BYTE* runSpeed = (BYTE*)(CHAR_SPEED + 2);
+    BYTE* normalSpeed = (BYTE*)(CHAR_SPEED + 6);
+    BYTE* CharAccel = (BYTE*)CHAR_ACCELERATION;
+    BYTE* jumpForce = (BYTE*)(ACTION_SPEED + 14);
 
-    BYTE* RingDamageStolenBytes = NULL;
-    LPVOID RingTrampoline = NULL;
+    PHOOK_OBJECT RingDamageObj = Trampo::CreateHook(RingDamageHook, RingDamageOrig);
+    //PHOOK_OBJECT SendNetXObj = Trampo::CreateHook(SendNetXCmdHook, SendNetXCmdOrig);
 
     while (1) {
+        
         printf("rings: %d\t", player->rings);
         printf("emeralds %d\n", getBitNum(*emeralds));
+        printf("normalSpeed %d\n",  *normalSpeed);
+        printf("runSpeed %d\n", *runSpeed);
+        printf("actionspeed %d\n", *jumpForce);
+        printf("thrustfactor: %hhx\taccelstart: %hhx\tacceleration: %hhx\n", CharAccel[0], CharAccel[1], CharAccel[2]);
+
         Sleep(1000);
 
         if (GetAsyncKeyState(VK_INSERT)) {
 
-            Trampo::EnableHook(RingDamageHook,RingDamageOrig ,&RingTrampoline, &RingDamageStolenBytes);
-            printf("god mode on\n");
+            if(Trampo::EnableHook(RingDamageObj))
+                printf("god mode on\n");
+            //Trampo::EnableHook(SendNetXObj);
         }
 
         if (GetAsyncKeyState(VK_HOME)) {
-            Trampo::DisableHook(RingDamageOrig, RingTrampoline, RingDamageStolenBytes);
-            printf("god mode off\n");
+            if(Trampo::DisableHook(RingDamageObj))
+                printf("god mode off\n");
+            //Trampo::DisableHook(SendNetXObj);
         }
 
         if (GetAsyncKeyState(VK_END)) {
