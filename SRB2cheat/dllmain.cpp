@@ -1,6 +1,11 @@
 #include <Windows.h>
 #include <iostream>
 #include "Trampoline.h"
+#include <winsock.h>
+#include "includes/d_player.h"
+#include "includes/d_clisrv.h"
+
+#pragma comment(lib,"Ws2_32.lib")
 
 #define ALL_EMERALDS 0x7f
 #define RING_DMG_OFF 0x4FBDF0
@@ -13,9 +18,9 @@
 #define LOAD_MODEL 0x42B8D0
 #define SERVER 0x66BC20
 #define LOCAL_TEXT_CMD 0x009AD860
+#define sendToIat 0x5463D28
 
-
-struct Player {
+/*struct Player {
     UINT_PTR ptr;
     BYTE fwBk;
     BYTE RightLeft;
@@ -24,7 +29,7 @@ struct Player {
     BYTE isSpin;
     BYTE isJump;
     BYTE isPaused;
-    BYTE padding1 [0xf];
+    BYTE padding1[0xf];
     short slope;
     short relativeHight;
     BYTE padding2[0x10];
@@ -33,25 +38,33 @@ struct Player {
     short CamPos3;
     short rings;
 
-};
+};*/
 
-using P_RingDamage = int (* )();
-P_RingDamage RingDamageOrig;
+using P_RingDamage = int (* )(int , char, int);
+P_RingDamage RingDamageTrampoline;
 
-//using SendNetXCmd = int(__cdecl*)(char, void*, size_t);
-//SendNetXCmd SendNetXCmdOrig;
-
-/*int __cdecl SendNetXCmdHook(char a1, void* a2, size_t a3) {
-    printf("SendNetXCmd Called\nid: %d\nnparam: %d\nparam: ", a1, a3);
-    for (int i = 0; i < a3; i++) {
-        if (i > 0) printf(":");
-        printf("%02X", ((char*)a2)[i]);
+int __stdcall sendToHook(SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen) {
+    if (buf) {
+        doomdata_t* data = (doomdata_t*)buf;
+        switch (data->packettype) {
+        case PT_CLIENTCMD:
+            printf("aiming: %d\n", data->u.clientpak.cmd.aiming);
+            printf("angleturn: %d\n", data->u.clientpak.cmd.angleturn);
+            printf("buttons: %d\n", data->u.clientpak.cmd.buttons);
+            printf("forwardmove: %d\n", data->u.clientpak.cmd.forwardmove);
+            printf("latency: %d\n", data->u.clientpak.cmd.latency);
+            printf("sidemove: %d\n", data->u.clientpak.cmd.sidemove);
+            printf("\n----------------------\n");
+            break;
+        }
     }
-    printf("\n----------------------\n");
-    return(SendNetXCmdOrig(a1, a2, a3));
-}*/
+    return sendto(s, buf, len, flags, to, tolen);
+}
 
-int RingDamageHook() {
+int RingDamageHook(int d, char e, int f) {
+
+    printf("ur hit\n");
+
     return 1;
 }
 
@@ -72,47 +85,51 @@ void getCon() {
 
 int hack(HMODULE hModule) {
 
-    RingDamageOrig = (P_RingDamage)RING_DMG_OFF;
-    //SendNetXCmdOrig = (SendNetXCmd)0x43ABC0;
+    //doomcom = (pdoomcom_t)0x9AEEB8;
 
     getCon();
-    Player* player = (Player*)PLAYER_OFF;
+
+    player_t* player = (player_t*)PLAYER_OFF;
     BYTE * emeralds = (BYTE*)EMERALD_OFF;
     BYTE* runSpeed = (BYTE*)(CHAR_SPEED + 2);
     BYTE* normalSpeed = (BYTE*)(CHAR_SPEED + 6);
     BYTE* CharAccel = (BYTE*)CHAR_ACCELERATION;
     BYTE* jumpForce = (BYTE*)(ACTION_SPEED + 14);
+    
 
-    PHOOK_OBJECT RingDamageObj = Trampo::CreateHook(RingDamageHook, RingDamageOrig);
-    //PHOOK_OBJECT SendNetXObj = Trampo::CreateHook(SendNetXCmdHook, SendNetXCmdOrig);
+    PHOOK_OBJECT RingDamageObj = Trampo::CreateHook(RingDamageHook, (LPVOID)RING_DMG_OFF,5);
+
+    RingDamageTrampoline = (P_RingDamage)RingDamageObj->trampoline;
+
+    *(DWORD*)sendToIat = (DWORD)sendToHook;
+
+
 
     while (1) {
-        
-        printf("rings: %d\t", player->rings);
-        printf("emeralds %d\n", getBitNum(*emeralds));
-        printf("normalSpeed %d\n",  *normalSpeed);
-        printf("runSpeed %d\n", *runSpeed);
-        printf("actionspeed %d\n", *jumpForce);
-        printf("thrustfactor: %hhx\taccelstart: %hhx\tacceleration: %hhx\n", CharAccel[0], CharAccel[1], CharAccel[2]);
 
-        Sleep(1000);
+        //printf("dashspeed %d\n", player->dashspeed);
+        if(player->pflags & PF_THOKKED)
+        player->pflags = (pflags_t)(player->pflags ^ PF_THOKKED);
+        //printf("suepr: %d", player->powers[pw_super]);
+
+        if (!player->powers[pw_super])
+            player->powers[pw_super]++;
 
         if (GetAsyncKeyState(VK_INSERT)) {
-
             if(Trampo::EnableHook(RingDamageObj))
                 printf("god mode on\n");
-            //Trampo::EnableHook(SendNetXObj);
         }
 
         if (GetAsyncKeyState(VK_HOME)) {
             if(Trampo::DisableHook(RingDamageObj))
                 printf("god mode off\n");
-            //Trampo::DisableHook(SendNetXObj);
         }
 
         if (GetAsyncKeyState(VK_END)) {
             *emeralds = ALL_EMERALDS;
             player->rings = 999;
+            //player->acceleration = 0xff;
+            player->dashspeed = 0xffff;
         }
     }
     return 0;
