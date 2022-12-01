@@ -7,16 +7,17 @@ BOOL Trampo::EnableHook(PHOOK_OBJECT HookObj) {
 		return FALSE;
 	}
 
-	BYTE stolenBytes[5] = { 0 };
 	DWORD oldProt;
 
 	LPVOID orig = HookObj->original;
 	LPVOID hook = HookObj->hook;
 
-	if (!VirtualProtect(orig, 5, PAGE_EXECUTE_READWRITE, &oldProt)) {
+	if (!VirtualProtect(orig, HookObj->len, PAGE_EXECUTE_READWRITE, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
 		exit(-1);
 	}
+
+	RtlFillMemory(orig, HookObj->len, 0x90);
 
 	DWORD relAddr = (DWORD)hook - (DWORD)orig - 5;
 
@@ -24,7 +25,8 @@ BOOL Trampo::EnableHook(PHOOK_OBJECT HookObj) {
 	orig = (LPVOID)((DWORD)orig + 1);
 	*(DWORD*)orig = (DWORD)relAddr;
 
-	if (!VirtualProtect(orig, 5, oldProt, &oldProt)) {
+
+	if (!VirtualProtect(orig, HookObj->len, oldProt, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
 		exit(-1);
 	}
@@ -42,17 +44,17 @@ BOOL Trampo::DisableHook(PHOOK_OBJECT HookObj)
 
 	DWORD oldProt;
 
-	if (!VirtualProtect(HookObj->original, 5, PAGE_EXECUTE_READWRITE, &oldProt)) {
+	if (!VirtualProtect(HookObj->original, HookObj->len, PAGE_EXECUTE_READWRITE, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
 		exit(-1);
 	}
 
-	if (!RtlCopyMemory(HookObj->original, HookObj->stolenBytes, 5)) {
+	if (!RtlCopyMemory(HookObj->original, HookObj->stolenBytes, HookObj->len)) {
 		printf("failed writing bytes: %d\n", GetLastError());
 		exit(-1);
 	}
 
-	if (!VirtualProtect(HookObj->original, 5, oldProt, &oldProt)) {
+	if (!VirtualProtect(HookObj->original, HookObj->len, oldProt, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
 		exit(-1);
 	}
@@ -61,7 +63,7 @@ BOOL Trampo::DisableHook(PHOOK_OBJECT HookObj)
 	return TRUE;
 }
 
-PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig)
+PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig,size_t len)
 {
 	PHOOK_OBJECT hookObj = (PHOOK_OBJECT)malloc(sizeof(HOOK_OBJECT));
 	if (!hookObj) {
@@ -70,25 +72,25 @@ PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig)
 	}
 
 	RtlZeroMemory(hookObj, sizeof(HOOK_OBJECT));
-
+	hookObj->len = len;
 	hookObj->isEnabled = false;
 	hookObj->hook = hook;
 	hookObj->original = orig;
 
-	BYTE* stolenBytes = (BYTE*)malloc(5);
+	BYTE* stolenBytes = (BYTE*)malloc(len);
 	if (!stolenBytes) {
 		printf("failed mallocing stolen bytes\n");
 		exit(-1);
 	}
 
-	if (!RtlCopyMemory(stolenBytes, orig, 5)) {
+	if (!RtlCopyMemory(stolenBytes, orig, len)) {
 		printf("failed stealing bytes: %d\n", GetLastError());
 		exit(-1);
 	}
 
 	hookObj->stolenBytes = stolenBytes;
 
-	LPVOID tramp = VirtualAlloc(0, 10, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	LPVOID tramp = VirtualAlloc(0, len+5, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 	if (!tramp) {
 		printf("failed VirtualAlloc: %d\n", GetLastError());
 		exit(-1);
@@ -96,14 +98,14 @@ PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig)
 
 	hookObj->trampoline = tramp;
 
-	if (!RtlCopyMemory(tramp, stolenBytes, 5)) {
+	if (!RtlCopyMemory(tramp, stolenBytes, len)) {
 		printf("failed writing bytes: %d\n", GetLastError());
 		exit(-1);
 	}
 
-	DWORD retAddr = ((DWORD)tramp + 5) - ((DWORD)orig + 5) - 5;
+	DWORD retAddr = ((DWORD)orig + len) - ((DWORD)tramp + len+5);
 
-	tramp = (LPVOID)((DWORD)tramp + 5);
+	tramp = (LPVOID)((DWORD)tramp + len);
 	*(BYTE*)tramp = 0xE9;
 	tramp = (LPVOID)((DWORD)tramp + 1);
 	*(DWORD*)tramp = retAddr;
