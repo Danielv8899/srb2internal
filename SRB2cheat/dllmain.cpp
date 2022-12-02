@@ -20,28 +20,18 @@
 #define LOCAL_TEXT_CMD 0x009AD860
 #define sendToIat 0x5463D28
 
-/*struct Player {
-    UINT_PTR ptr;
-    BYTE fwBk;
-    BYTE RightLeft;
-    short CamPos;
-    short padding;
-    BYTE isSpin;
-    BYTE isJump;
-    BYTE isPaused;
-    BYTE padding1[0xf];
-    short slope;
-    short relativeHight;
-    BYTE padding2[0x10];
-    unsigned int CamPos2;
-    BYTE padding3[0x5];
-    short CamPos3;
-    short rings;
-
-};*/
+using HWR_RenderWall = int(__cdecl*)(void* a1, BYTE* a2, int a3, int a4, int a5, int a6);
+HWR_RenderWall RenderWallTrampoline;
 
 using P_RingDamage = int (* )(int , char, int);
 P_RingDamage RingDamageTrampoline;
+
+int __cdecl HWR_RenderWallHook(void* a1, BYTE* a2, int a3, int a4, int a5, int a6) {
+    __asm pushad;
+    printf("HWR_RenderWall called\n");
+    __asm popad;
+    return RenderWallTrampoline(a1, a2, a3, a4, a5, a6);
+}
 
 int __stdcall sendToHook(SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen) {
     if (buf) {
@@ -86,6 +76,8 @@ void getCon() {
 int hack(HMODULE hModule) {
 
     //doomcom = (pdoomcom_t)0x9AEEB8;
+    Trampo Trampo;
+    
 
     getCon();
 
@@ -95,15 +87,14 @@ int hack(HMODULE hModule) {
     BYTE* normalSpeed = (BYTE*)(CHAR_SPEED + 6);
     BYTE* CharAccel = (BYTE*)CHAR_ACCELERATION;
     BYTE* jumpForce = (BYTE*)(ACTION_SPEED + 14);
-    
 
-    PHOOK_OBJECT RingDamageObj = Trampo::CreateHook(RingDamageHook, (LPVOID)RING_DMG_OFF,5);
+    auto RingDamageObj = Trampo.CreateHook(RingDamageHook, (LPVOID)RING_DMG_OFF,5);
+    auto RenderWallObj = Trampo.CreateHook(HWR_RenderWallHook, (LPVOID)0x420B90, 7);
 
     RingDamageTrampoline = (P_RingDamage)RingDamageObj->trampoline;
+    RenderWallTrampoline = (HWR_RenderWall)RenderWallObj->trampoline;
 
     *(DWORD*)sendToIat = (DWORD)sendToHook;
-
-
 
     while (1) {
 
@@ -112,24 +103,28 @@ int hack(HMODULE hModule) {
         player->pflags = (pflags_t)(player->pflags ^ PF_THOKKED);
         //printf("suepr: %d", player->powers[pw_super]);
 
-        if (!player->powers[pw_super])
-            player->powers[pw_super]++;
+        //if (!player->powers[pw_super])
+        //    player->powers[pw_super]++;
 
         if (GetAsyncKeyState(VK_INSERT)) {
-            if(Trampo::EnableHook(RingDamageObj))
+            if(Trampo.EnableHook(RingDamageObj.get()))
                 printf("god mode on\n");
+            //Trampo::EnableHook(RenderWallObj);
         }
 
         if (GetAsyncKeyState(VK_HOME)) {
-            if(Trampo::DisableHook(RingDamageObj))
+            if(Trampo.DisableHook(RingDamageObj.get()))
                 printf("god mode off\n");
+            //Trampo::DisableHook(RenderWallObj);
         }
 
         if (GetAsyncKeyState(VK_END)) {
             *emeralds = ALL_EMERALDS;
             player->rings = 999;
-            //player->acceleration = 0xff;
+            player->acceleration = 0xff;
             player->dashspeed = 0xffff;
+            player->normalspeed = 0xff;
+            
         }
     }
     return 0;
