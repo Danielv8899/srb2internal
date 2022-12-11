@@ -163,7 +163,9 @@
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Trampoline.cpp" />
+    <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\glew.h" />
@@ -280,7 +282,9 @@
     <ClInclude Include="includes\w_wad.h" />
     <ClInclude Include="includes\y_inter.h" />
     <ClInclude Include="includes\z_zone.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="Trampoline.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
