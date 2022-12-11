@@ -23,6 +23,8 @@ bool infiniteThok = false;
 bool alwaysSuper = false;
 bool menuShown = true;
 int superDash = 0;
+char* playername = nullptr;
+int playernum;
 
 LRESULT CALLBACK windowProc_hook(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -79,7 +81,8 @@ int __stdcall sendToHook(SOCKET s, const char* buf, int len, int flags, const st
     if (buf) {
         doomdata_t* data = (doomdata_t*)buf;
         switch (data->packettype) {
-        case PT_CLIENTCMD:
+        case PT_CLIENTJOIN:
+        //case PT_CLIENTCMD:
             lastData = *data;
             break;
         }
@@ -98,10 +101,10 @@ void ImGuiWindow() {
 
     ImGui::Begin("SRB2Internal");
 
-    ImGui::Text("Packet type: %d", lastData.packettype);
     ImGui::Separator();
     switch (lastData.packettype) {
     case PT_CLIENTCMD:
+        ImGui::Text("Packet type: %d", lastData.packettype);
         ImGui::Text("aiming: %d", lastData.u.clientpak.cmd.aiming);
         ImGui::Text("angleturn: %d", lastData.u.clientpak.cmd.angleturn);
         ImGui::Text("buttons: %d", lastData.u.clientpak.cmd.buttons);
@@ -109,16 +112,28 @@ void ImGuiWindow() {
         ImGui::Text("latency: %d", lastData.u.clientpak.cmd.latency);
         ImGui::Text("sidemove: %d", lastData.u.clientpak.cmd.sidemove);
         break;
+    
+    case PT_CLIENTJOIN:
+        //if (!online) online = !online;
+        ImGui::Text("Packet type: %d", lastData.packettype);
+        ImGui::Text("application: %s", lastData.u.clientcfg.application);
+        ImGui::Text("localplayers: %d", lastData.u.clientcfg.localplayers);
+        ImGui::Text("mode: %d", lastData.u.clientcfg.mode);
+        ImGui::Text("modversion: %d", lastData.u.clientcfg.modversion);
+        for(int i = 0; lastData.u.clientcfg.names[i][0]; i++)
+        ImGui::Text("names: %s", lastData.u.clientcfg.names[i]);
+        break;
     }
 
-    ImGui::SliderShort("Rings", &player->rings, 0, 32767, "%d");
-    ImGui::SliderUByte("acceleration", &player->acceleration, 0, 255, "%d");
-    ImGui::SliderInt("score", (int*) & player->score, 0, 2147483647, "%d");
+    ImGui::SliderShort("Rings", &player[playernum].rings, 0, 32767, "%d");
+    ImGui::SliderUByte("acceleration", &player[playernum].acceleration, 0, 255, "%d");
+    ImGui::SliderInt("score", (int*) & player[playernum].score, 0, 2147483647, "%d");
     ImGui::SliderInt("dashspeed", &superDash, 0, 2147483647, "%d");
-    ImGui::SliderInt("normal speed", &player->normalspeed, 0, 2147483647, "%d");
-    ImGui::SliderInt("run speed", &player->runspeed, 0, 2147483647, "%d");
-    ImGui::SliderUByte("accelstart", &player->accelstart, 0, 255, "%d");
-    ImGui::SliderUByte("thrustfactor", &player->thrustfactor, 0, 255, "%d");
+    ImGui::SliderInt("normal speed", &player[playernum].normalspeed, 0, 2147483647, "%d");
+    ImGui::SliderInt("run speed", &player[playernum].runspeed, 0, 2147483647, "%d");
+    ImGui::SliderUByte("accelstart", &player[playernum].accelstart, 0, 255, "%d");
+    ImGui::SliderUByte("thrustfactor", &player[playernum].thrustfactor, 0, 255, "%d");
+    ImGui::InputInt("playernum", &playernum, 1, 100, 0);
     ImGui::Checkbox("all emeralds", &allEmeralds);
     ImGui::Checkbox("God Mode", &godMode);
     ImGui::Checkbox("Infinite Thok", &infiniteThok);
@@ -137,6 +152,7 @@ int hack(HMODULE hModule) {
         printf("failed getting swapbuffer\n");
         exit(-1);
     }
+
     *(DWORD*)sendToIat = (DWORD)sendToHook;
 
     RingDamageObj = Trampo::CreateHook(RingDamageHook, (LPVOID)RING_DMG_OFF, 5);
@@ -149,22 +165,24 @@ int hack(HMODULE hModule) {
 
     Util::getCon();
 
-
     return 0;
 }
 
 void hackLoop() {
 
+    if ((DWORD)player != (DWORD)PLAYER_OFF + (32*playernum))
+        player = (player_t*)((DWORD)PLAYER_OFF + (32 * playernum));
+
     if (superDash)
-        player->dashspeed = superDash;
+        player[playernum].dashspeed = superDash;
 
     if (alwaysSuper)
-        if (!player->powers[pw_super])
-            player->powers[pw_super]++;
+        if (!player[playernum].powers[pw_super])
+            player[playernum].powers[pw_super]++;
 
     if (infiniteThok)
-        if (player->pflags & PF_THOKKED)
-            player->pflags = (pflags_t)(player->pflags ^ PF_THOKKED);
+        if (player[playernum].pflags & PF_THOKKED)
+            player[playernum].pflags = (pflags_t)(player[playernum].pflags ^ PF_THOKKED);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Insert))
         godMode = !godMode;
@@ -172,7 +190,7 @@ void hackLoop() {
     if (godMode) {
         if (!RingDamageObj->isEnabled)
             Trampo::EnableHook(RingDamageObj);
-        if (player->rings < 2) player->rings = 2;
+        if (player[playernum].rings < 2) player[playernum].rings = 2;
     }
     else {
         if (RingDamageObj->isEnabled)
@@ -188,10 +206,11 @@ void hackLoop() {
 
 int WINAPI main(HMODULE hModule) {
 
-    if (!CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)hack, hModule, NULL, NULL)) {
+    /*if (!CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)hack, hModule, NULL, NULL)) {
         printf("failed CreateThread\n, %d\n", GetLastError());
         return -1;
-    }
+    }*/
+    hack(hModule);
 
     return 0;
 }
