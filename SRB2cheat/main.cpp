@@ -1,81 +1,23 @@
 #include "main.h"
 #include "util.h"
+#include "graphics.h"
+#include "GameHooks.h"
+#include "Trampoline.h"
+#include "includes/d_player.h"
+#include "includes/d_clisrv.h"
 
 //offsets extracted from binary
 player_t* player = (player_t*)PLAYER_OFF;
 BYTE* emeralds = (BYTE*)EMERALD_OFF;
 
+GameHooks* gameHooks = nullptr;
+opengl* gl = nullptr;
+
 //hooks
-PHOOK_OBJECT RingDamageObj = NULL;
 doomdata_t lastData;
-P_RingDamage RingDamageTrampoline;
-extern "C" wglSwapBuffers_t wglSwapBuffersTrampoline = nullptr;
 PDWORD oldSendToIat = NULL;
 
 //handles
-HWND hGameWindow;
-WNDPROC hGameWindowProc;
-
-//ImGui triggers
-bool godMode = false;
-bool allEmeralds = false;
-bool infiniteThok = false;
-bool alwaysSuper = false;
-bool menuShown = true;
-int superDash = 0;
-char* playername = nullptr;
-int playernum;
-
-LRESULT CALLBACK windowProc_hook(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-
-    if (uMsg == WM_KEYDOWN && wParam == VK_DELETE) {
-        menuShown = !menuShown;
-        return false;
-    }
-
-    if (menuShown) {
-        CallWindowProc((WNDPROC)ImGui_ImplWin32_WndProcHandler, hWnd, uMsg, wParam, lParam);
-    }
-    return CallWindowProc(hGameWindowProc, hWnd, uMsg, wParam, lParam);
-}
-
-extern "C" void __stdcall RenderHook(_In_ HDC hDc) {
-
-    static bool imGuiInitialized = false;
-    if (!imGuiInitialized) {
-        imGuiInitialized = true;
-
-        hGameWindow = WindowFromDC(hDc);
-
-        if (!hGameWindowProc)
-            hGameWindowProc = (WNDPROC)SetWindowLongPtr(hGameWindow,
-                GWLP_WNDPROC, (LONG_PTR)windowProc_hook);
-
-        glewInit();
-        ImGui::CreateContext();
-        ImGui_ImplWin32_Init(hGameWindow);
-        ImGui_ImplOpenGL3_Init();
-        ImGui::StyleColorsDark();
-        ImGui::GetStyle().AntiAliasedFill = false;
-        ImGui::GetStyle().AntiAliasedLines = false;
-        ImGui::CaptureMouseFromApp();
-        ImGui::CaptureKeyboardFromApp();
-        ImGui::GetStyle().WindowTitleAlign = ImVec2(0.5f, 0.5f);
-    }
-
-    if (menuShown) {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
-        ImGuiWindow();
-        ImGui::EndFrame();
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-    hackLoop();
-    wglSwapBuffersTrampoline(hDc);
-}
 
 int __stdcall sendToHook(SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen) {
     if (buf) {
@@ -88,13 +30,6 @@ int __stdcall sendToHook(SOCKET s, const char* buf, int len, int flags, const st
         }
     }
     return sendto(s, buf, len, flags, to, tolen);
-}
-
-int RingDamageHook(int d, char e, int f) {
-
-    printf("ur hit\n");
-
-    return 1;
 }
 
 void ImGuiWindow() {
@@ -125,43 +60,31 @@ void ImGuiWindow() {
         break;
     }
 
-    ImGui::SliderShort("Rings", &player[playernum].rings, 0, 32767, "%d");
-    ImGui::SliderUByte("acceleration", &player[playernum].acceleration, 0, 255, "%d");
-    ImGui::SliderInt("score", (int*) & player[playernum].score, 0, 2147483647, "%d");
-    ImGui::SliderInt("dashspeed", &superDash, 0, 2147483647, "%d");
-    ImGui::SliderInt("normal speed", &player[playernum].normalspeed, 0, 2147483647, "%d");
-    ImGui::SliderInt("run speed", &player[playernum].runspeed, 0, 2147483647, "%d");
-    ImGui::SliderUByte("accelstart", &player[playernum].accelstart, 0, 255, "%d");
-    ImGui::SliderUByte("thrustfactor", &player[playernum].thrustfactor, 0, 255, "%d");
-    ImGui::InputInt("playernum", &playernum, 1, 100, 0);
-    ImGui::Checkbox("all emeralds", &allEmeralds);
-    ImGui::Checkbox("God Mode", &godMode);
-    ImGui::Checkbox("Infinite Thok", &infiniteThok);
-    ImGui::Checkbox("Always Super", &alwaysSuper);
+    ImGui::SliderShort("Rings", &player[triggers::playernum].rings, 0, 32767, "%d");
+    ImGui::SliderUByte("acceleration", &player[triggers::playernum].acceleration, 0, 255, "%d");
+    ImGui::SliderInt("score", (int*) & player[triggers::playernum].score, 0, 2147483647, "%d");
+    ImGui::SliderInt("dashspeed", &triggers::superDash, 0, 2147483647, "%d");
+    ImGui::SliderInt("normal speed", &player[triggers::playernum].normalspeed, 0, 2147483647, "%d");
+    ImGui::SliderInt("run speed", &player[triggers::playernum].runspeed, 0, 2147483647, "%d");
+    ImGui::SliderUByte("accelstart", &player[triggers::playernum].accelstart, 0, 255, "%d");
+    ImGui::SliderUByte("thrustfactor", &player[triggers::playernum].thrustfactor, 0, 255, "%d");
+    ImGui::InputInt("playernum", &triggers::playernum, 1, 100, 0);
+    ImGui::Checkbox("all emeralds", &triggers::allEmeralds);
+    ImGui::Checkbox("God Mode", &triggers::godMode);
+    ImGui::Checkbox("Infinite Thok", &triggers::infiniteThok);
+    ImGui::Checkbox("Always Super", &triggers::alwaysSuper);
     ImGui::End();
 }
 
 int hack(HMODULE hModule) {
 
-    DWORD wglSwapBuffersHookAddr = NULL;
-    HMODULE hOpengl32 = GetModuleHandle(L"opengl32.dll");
-    if (hOpengl32 != nullptr) {
-        wglSwapBuffersHookAddr = (DWORD)GetProcAddress(hOpengl32, "wglSwapBuffers");
-    }
-    else {
-        printf("failed getting swapbuffer\n");
-        exit(-1);
-    }
+    gl = new opengl();
+    gameHooks = new GameHooks();
+    gameHooks->init();
+    gl->init();
+    gl->activate(gl->wglSwapBuffersObj);
 
-    *(DWORD*)sendToIat = (DWORD)sendToHook;
-
-    RingDamageObj = Trampo::CreateHook(RingDamageHook, (LPVOID)RING_DMG_OFF, 5);
-
-    RingDamageTrampoline = (P_RingDamage)RingDamageObj->trampoline;
-
-    auto wglSwapBuffersObj = Trampo::CreateHook(RenderHook, (LPVOID)wglSwapBuffersHookAddr, 5);
-    wglSwapBuffersTrampoline = (wglSwapBuffers_t)wglSwapBuffersObj->trampoline;
-    Trampo::EnableHook(wglSwapBuffersObj);
+    *(DWORD*)sendToIat = (DWORD)sendToHook; //TODO: parse IAT properly
 
     Util::getCon();
 
@@ -170,34 +93,34 @@ int hack(HMODULE hModule) {
 
 void hackLoop() {
 
-    if ((DWORD)player != (DWORD)PLAYER_OFF + (32*playernum))
-        player = (player_t*)((DWORD)PLAYER_OFF + (32 * playernum));
+    if ((DWORD)player != (DWORD)PLAYER_OFF + (32* triggers::playernum))
+        player = (player_t*)((DWORD)PLAYER_OFF + (32 * triggers::playernum));
 
-    if (superDash)
-        player[playernum].dashspeed = superDash;
+    if (triggers::superDash)
+        player[triggers::playernum].dashspeed = triggers::superDash;
 
-    if (alwaysSuper)
-        if (!player[playernum].powers[pw_super])
-            player[playernum].powers[pw_super]++;
+    if (triggers::alwaysSuper)
+        if (!player[triggers::playernum].powers[pw_super])
+            player[triggers::playernum].powers[pw_super]++;
 
-    if (infiniteThok)
-        if (player[playernum].pflags & PF_THOKKED)
-            player[playernum].pflags = (pflags_t)(player[playernum].pflags ^ PF_THOKKED);
+    if (triggers::infiniteThok)
+        if (player[triggers::playernum].pflags & PF_THOKKED)
+            player[triggers::playernum].pflags = (pflags_t)(player[triggers::playernum].pflags ^ PF_THOKKED);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Insert))
-        godMode = !godMode;
+        triggers::godMode = !triggers::godMode;
 
-    if (godMode) {
-        if (!RingDamageObj->isEnabled)
-            Trampo::EnableHook(RingDamageObj);
-        if (player[playernum].rings < 2) player[playernum].rings = 2;
+    if (triggers::godMode) {
+        if (!gameHooks->RingDamageObj->isEnabled)
+            gameHooks->activate(gameHooks->RingDamageObj);
+        if (player[triggers::playernum].rings < 2) player[triggers::playernum].rings = 2;
     }
     else {
-        if (RingDamageObj->isEnabled)
-            Trampo::DisableHook(RingDamageObj);
+        if (gameHooks->RingDamageObj->isEnabled)
+            gameHooks->deactivate(gameHooks->RingDamageObj);
     }
 
-    if (allEmeralds)
+    if (triggers::allEmeralds)
         *emeralds = 0x7f;
     else {
         *emeralds = 0;
