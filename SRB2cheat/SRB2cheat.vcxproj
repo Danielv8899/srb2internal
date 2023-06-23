@@ -77,10 +77,12 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;SRB2CHEAT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <CallingConvention>Cdecl</CallingConvention>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -167,6 +169,7 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="network.cpp" />
     <ClCompile Include="Trampoline.cpp" />
     <ClCompile Include="triggers.cpp" />
     <ClCompile Include="util.cpp" />
@@ -208,6 +211,7 @@
     <ClInclude Include="includes\fastcmp.h" />
     <ClInclude Include="includes\filesrch.h" />
     <ClInclude Include="includes\f_finale.h" />
+    <ClInclude Include="includes\gl.h" />
     <ClInclude Include="includes\g_demo.h" />
     <ClInclude Include="includes\g_game.h" />
     <ClInclude Include="includes\g_input.h" />
@@ -290,6 +294,8 @@
     <ClInclude Include="includes\y_inter.h" />
     <ClInclude Include="includes\z_zone.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="network.h" />
+    <ClInclude Include="offsets.h" />
     <ClInclude Include="Trampoline.h" />
     <ClInclude Include="triggers.h" />
     <ClInclude Include="util.h" />
