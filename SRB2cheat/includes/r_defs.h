@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2022 by Sonic Team Junior.
+// Copyright (C) 1999-2023 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -587,7 +587,7 @@ typedef struct subsector_s
 {
 	sector_t *sector;
 	INT16 numlines;
-	UINT16 firstline;
+	UINT32 firstline;
 	struct polyobj_s *polyList; // haleyjd 02/19/06: list of polyobjects
 	size_t validcount;
 } subsector_t;

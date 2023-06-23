@@ -1,5 +1,6 @@
 #include "GameHooks.h"
 #include "main.h"
+#include "offsets.h"
 
 int RingDamageHook(int d, char e, int f) {
 

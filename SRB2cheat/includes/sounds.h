@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Copyright (C) 1993-1996 by id Software, Inc.
 // Copyright (C) 1998-2000 by DooM Legacy Team.
-// Copyright (C) 1999-2022 by Sonic Team Junior.
+// Copyright (C) 1999-2023 by Sonic Team Junior.
 //
 // This program is free software distributed under the
 // terms of the GNU General Public License, version 2.
@@ -11,11 +11,10 @@
 /// \file  sounds.h
 /// \brief Sound and music info
 
-#include "doomdef.h"
-
 #ifndef __SOUNDS__
 #define __SOUNDS__
 
+#include "doomdef.h"
 // Customisable sounds for Skins
 typedef enum
 {

@@ -60,6 +60,9 @@
     <ClCompile Include="triggers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="network.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Trampoline.h">
@@ -189,9 +192,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\i_video.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\info.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\keys.h">
@@ -365,9 +365,6 @@
     <ClInclude Include="includes\screen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\sounds.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="includes\st_stuff.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -423,6 +420,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="triggers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="offsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="network.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\sounds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\gl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
