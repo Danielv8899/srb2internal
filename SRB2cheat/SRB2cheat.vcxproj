@@ -156,6 +156,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="GameHooks.cpp" />
+    <ClCompile Include="graphics.cpp" />
+    <ClCompile Include="HookObj.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -165,9 +168,13 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Trampoline.cpp" />
+    <ClCompile Include="triggers.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GameHooks.h" />
+    <ClInclude Include="graphics.h" />
+    <ClInclude Include="HookObj.h" />
     <ClInclude Include="imgui\glew.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
@@ -284,6 +291,7 @@
     <ClInclude Include="includes\z_zone.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Trampoline.h" />
+    <ClInclude Include="triggers.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

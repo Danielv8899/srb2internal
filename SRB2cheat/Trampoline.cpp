@@ -1,10 +1,10 @@
 #include "Trampoline.h"
 
-BOOL Trampo::EnableHook(PHOOK_OBJECT HookObj) {
+int Trampo::EnableHook(PHOOK_OBJECT HookObj) {
 
 	if (HookObj->isEnabled) {
 		printf("hook is already enabled\n");
-		return FALSE;
+		return 0;
 	}
 
 	DWORD oldProt;
@@ -14,7 +14,7 @@ BOOL Trampo::EnableHook(PHOOK_OBJECT HookObj) {
 
 	if (!VirtualProtect(orig, HookObj->len, PAGE_EXECUTE_READWRITE, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
-		exit(-1);
+		return -1;
 	}
 
 	RtlFillMemory(orig, HookObj->len, 0x90);
@@ -28,11 +28,11 @@ BOOL Trampo::EnableHook(PHOOK_OBJECT HookObj) {
 
 	if (!VirtualProtect(orig, HookObj->len, oldProt, &oldProt)) {
 		printf("failed VirtualProtect: %d\n", GetLastError());
-		exit(-1);
+		return -1;
 	}
 
 	HookObj->isEnabled = true;
-	return TRUE;
+	return 1;
 }
 
 BOOL Trampo::DisableHook(PHOOK_OBJECT HookObj)
@@ -68,7 +68,7 @@ PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig, size_t len)
 	PHOOK_OBJECT hookObj = (PHOOK_OBJECT)malloc(sizeof(HOOK_OBJECT));
 	if (!hookObj) {
 		printf("failed mallocing hook object\n");
-		exit(-1);
+		return 0;
 	}
 
 	RtlZeroMemory(hookObj, sizeof(HOOK_OBJECT));
@@ -80,12 +80,12 @@ PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig, size_t len)
 	BYTE* stolenBytes = (BYTE*)malloc(len);
 	if (!stolenBytes) {
 		printf("failed mallocing stolen bytes\n");
-		exit(-1);
+		return 0;
 	}
 
 	if (!RtlCopyMemory(stolenBytes, orig, len)) {
 		printf("failed stealing bytes: %d\n", GetLastError());
-		exit(-1);
+		return 0;
 	}
 
 	hookObj->stolenBytes = stolenBytes;
@@ -93,14 +93,14 @@ PHOOK_OBJECT Trampo::CreateHook(LPVOID hook, LPVOID orig, size_t len)
 	LPVOID tramp = VirtualAlloc(0, len + 5, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 	if (!tramp) {
 		printf("failed VirtualAlloc: %d\n", GetLastError());
-		exit(-1);
+		return 0;
 	}
 
 	hookObj->trampoline = tramp;
 
 	if (!RtlCopyMemory(tramp, stolenBytes, len)) {
 		printf("failed writing bytes: %d\n", GetLastError());
-		exit(-1);
+		return 0;
 	}
 
 	DWORD retAddr = ((DWORD)orig + len) - ((DWORD)tramp + len + 5);

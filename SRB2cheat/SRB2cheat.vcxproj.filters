@@ -48,6 +48,18 @@
     <ClCompile Include="util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="graphics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HookObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameHooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="triggers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Trampoline.h">
@@ -399,6 +411,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HookObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameHooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="triggers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
